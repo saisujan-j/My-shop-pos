@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop POS | Billing</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <header>
+        <h1>Billing Counter</h1>
+        <button id="cart-toggle-btn" class="cart-btn" onclick="window.openCart()">
+            Cart <span id="cart-badge">0</span>
+        </button>
+    </header>
+
+    <main class="container">
+        <section class="catalog-section">
+            <div class="search-container">
+                <input type="text" id="search-box" placeholder="Search products...">
+            </div>
+            <div id="product-list" class="product-grid"></div>
+        </section>
+
+        <section class="billing-section" id="cart-sidebar">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">Your Cart</h2>
+                <button class="close-cart-btn" onclick="window.closeCart()" style="margin: 0; width: auto; padding: 10px 20px;">
+                    Close ➔
+                </button>
+            </div>
+
+            <div class="customer-info">
+                <input type="text" id="cust-name" placeholder="Customer Name">
+                <input type="text" id="cust-phone" placeholder="Phone Number">
+            </div>
+
+            <div style="flex-grow: 1; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr>
+                    </thead>
+                    <tbody id="bill-items"></tbody>
+                </table>
+            </div>
+            
+            <div class="bill-summary">
+                <div class="discount-section">
+                    <span>Discount (₹):</span>
+                    <input type="number" id="discount-input" value="0" oninput="window.applyDiscount()">
+                </div>
+                <h3 style="margin-top: 15px;">Total: ₹<span id="grand-total">0</span></h3>
+                <button onclick="window.finalizeSale()" class="complete-btn">Complete Sale</button>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast"></div>
+
+    <script type="module" src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+        }
+    </script>
+</body>
+</html>

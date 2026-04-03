@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin | My Shop</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header><h1>Admin Dashboard</h1><a href="index.html" style="color:white;text-decoration:none">➔ Billing</a></header>
+    <main class="container">
+        <div style="display:flex;gap:15px;margin-bottom:20px">
+            <div style="background:white;padding:20px;flex:1;text-align:center;border-radius:8px"><h3>Today Customers</h3><p id="today-customers" style="font-size:2rem">0</p></div>
+            <div style="background:white;padding:20px;flex:1;text-align:center;border-radius:8px"><h3>Today Revenue</h3><p style="font-size:2rem">₹<span id="today-revenue">0</span></p></div>
+        </div>
+
+        <div style="background:white;padding:20px;border-radius:8px;margin-bottom:20px"><canvas id="salesChart" style="height:300px"></canvas></div>
+
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <div style="flex:1;min-width:300px;background:white;padding:20px;border-radius:8px">
+                <h2>Add Product</h2>
+                <form id="product-form" style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+                    <input type="hidden" id="edit-id"><input type="text" id="prod-name" placeholder="Name" required><input type="number" id="prod-price" placeholder="Price" required><input type="file" id="prod-image" accept="image/*"><button type="submit" id="submit-btn" style="background:#27ae60;color:white;padding:10px;border:none;border-radius:4px">Save</button>
+                </form>
+            </div>
+            <div style="flex:1;min-width:300px;background:white;padding:20px;border-radius:8px"><h2>Top Selling</h2><table><thead><tr><th>Name</th><th>Units</th></tr></thead><tbody id="top-items-list"></tbody></table></div>
+        </div>
+
+        <div style="background:white;padding:20px;border-radius:8px;margin-top:20px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><h2>Inventory</h2><input type="text" id="inventory-search" placeholder="Search..." style="padding:8px"></div>
+            <table><thead><tr><th>Img</th><th>Name</th><th>Price</th><th>Actions</th></tr></thead><tbody id="inventory-list"></tbody></table>
+        </div>
+    </main>
+    <script type="module" src="admin.js"></script>
+</body>
+</html>
