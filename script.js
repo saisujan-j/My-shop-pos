@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBuApJZcXE60yFqlFL_Bm3jmxmgrV6q2Yg",
@@ -12,32 +13,37 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
 let products = [];
 let billItems = JSON.parse(localStorage.getItem('currentCart')) || [];
+let currentUser = null;
 
-// --- Navigation Logic ---
-window.openCart = function() {
+// Check Login Status
+onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+});
+
+// Navigation & Logic
+window.openCart = () => {
     document.getElementById('cart-sidebar').classList.add('active');
     history.pushState({ cartOpen: true }, "");
 };
-
-window.closeCart = function() {
+window.closeCart = () => {
     document.getElementById('cart-sidebar').classList.remove('active');
     if (history.state && history.state.cartOpen) history.back();
 };
+window.onpopstate = () => document.getElementById('cart-sidebar').classList.remove('active');
 
-window.onpopstate = function() {
-    document.getElementById('cart-sidebar').classList.remove('active');
-};
-
-// --- Product & Cart Logic ---
 async function loadProducts() {
-    const querySnapshot = await getDocs(collection(db, "products"));
-    products = [];
-    querySnapshot.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
-    renderProducts();
-    updateBillDisplay();
+    try {
+        const querySnapshot = await getDocs(collection(db, "products"));
+        products = [];
+        querySnapshot.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
+        renderProducts();
+        updateBillDisplay();
+    } catch (e) { console.error("Load failed:", e); }
 }
 
 function renderProducts(query = "") {
@@ -55,7 +61,7 @@ function renderProducts(query = "") {
     });
 }
 
-window.addToBill = function(id) {
+window.addToBill = (id) => {
     const p = products.find(i => i.id === id);
     const existing = billItems.find(i => i.id === id);
     if (existing) existing.qty += 1;
@@ -64,14 +70,14 @@ window.addToBill = function(id) {
     window.openCart();
 };
 
-window.updateItemQuantity = function(id, val) {
+window.updateItemQuantity = (id, val) => {
     const item = billItems.find(i => i.id === id);
     if (val === "custom") { if (item.qty <= 10) item.qty = 11; }
     else item.qty = Number(val);
     updateBillDisplay();
 };
 
-window.removeFromBill = function(id) {
+window.removeFromBill = (id) => {
     billItems = billItems.filter(i => i.id !== id);
     updateBillDisplay();
 };
@@ -109,6 +115,17 @@ function updateBillDisplay() {
 
 window.finalizeSale = async function() {
     if (!billItems.length) return;
+    
+    // If not logged in, ask for login before saving sale
+    if (!currentUser) {
+        try {
+            await signInWithPopup(auth, provider);
+        } catch (e) {
+            alert("Login required to complete sale.");
+            return;
+        }
+    }
+
     const sale = {
         date: new Date().toLocaleString(),
         total: Number(document.getElementById('grand-total').innerText),
@@ -116,15 +133,14 @@ window.finalizeSale = async function() {
         customerName: document.getElementById('cust-name').value || "Guest",
         phone: document.getElementById('cust-phone').value || "N/A"
     };
+    
     try {
         await addDoc(collection(db, "sales"), sale);
         billItems = []; localStorage.removeItem('currentCart');
-        document.getElementById('cust-name').value = '';
-        document.getElementById('cust-phone').value = '';
         updateBillDisplay();
         document.getElementById('cart-sidebar').classList.remove('active');
         alert("Sale Completed!");
-    } catch (e) { alert("Error saving sale."); }
+    } catch (e) { alert("Error saving sale. Make sure you are logged in."); }
 };
 
 document.getElementById('search-box').addEventListener('input', e => renderProducts(e.target.value));
