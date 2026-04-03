@@ -1,5 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+// NEW: Import Authentication modules
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBuApJZcXE60yFqlFL_Bm3jmxmgrV6q2Yg",
@@ -12,25 +14,47 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app); // Initialize Auth
+const provider = new GoogleAuthProvider(); // Initialize Google Login
 
 let products = [];
 let salesHistory = [];
 
-async function loadCloudData() {
-    products = [];
-    const prodSnapshot = await getDocs(collection(db, "products"));
-    prodSnapshot.forEach((doc) => products.push({ id: doc.id, ...doc.data() }));
-    renderInventory();
+// --- NEW: Authentication Guard ---
+// This checks if you are logged in before trying to load data
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        console.log("Logged in as:", user.email);
+        loadCloudData(); // Only run this if we are authenticated
+    } else {
+        // If not logged in, show the Google Login popup
+        signInWithPopup(auth, provider).catch(error => {
+            alert("Access Denied. You must login to manage the shop: " + error.message);
+        });
+    }
+});
 
-    salesHistory = [];
-    const salesSnapshot = await getDocs(collection(db, "sales"));
-    salesSnapshot.forEach((doc) => salesHistory.push({ id: doc.id, ...doc.data() }));
-    
-    renderTopItems();
-    renderSalesAndAnalytics();
+async function loadCloudData() {
+    try {
+        products = [];
+        const prodSnapshot = await getDocs(collection(db, "products"));
+        prodSnapshot.forEach((doc) => products.push({ id: doc.id, ...doc.data() }));
+        renderInventory();
+
+        salesHistory = [];
+        const salesSnapshot = await getDocs(collection(db, "sales"));
+        salesSnapshot.forEach((doc) => salesHistory.push({ id: doc.id, ...doc.data() }));
+        
+        renderTopItems();
+        renderSalesAndAnalytics();
+    } catch (error) {
+        console.error("Firebase Error:", error);
+        alert("Permission Denied. Make sure you are logged in with the correct account.");
+    }
 }
 
-// NEW: Render Inventory with Search Support
+// ... Keep your existing renderInventory, renderTopItems, etc. exactly the same ...
+
 function renderInventory(filterText = "") {
     const inventoryList = document.getElementById('inventory-list');
     inventoryList.innerHTML = '';
@@ -55,7 +79,6 @@ function renderInventory(filterText = "") {
     });
 }
 
-// Listen for Inventory Search Input
 document.getElementById('inventory-search')?.addEventListener('input', (e) => {
     renderInventory(e.target.value);
 });
@@ -85,7 +108,7 @@ if(form) {
                 document.getElementById('submit-btn').innerText = 'Save Product';
                 loadCloudData();
             } catch (e) {
-                alert("Error saving to cloud.");
+                alert("Error saving to cloud. Check if you are logged in.");
             }
         };
 
@@ -101,8 +124,10 @@ if(form) {
 
 window.deleteProduct = async function(id) {
     if(confirm("Delete product?")) {
-        await deleteDoc(doc(db, "products", id));
-        loadCloudData();
+        try {
+            await deleteDoc(doc(db, "products", id));
+            loadCloudData();
+        } catch(e) { alert("Delete failed. Check permissions."); }
     }
 }
 
@@ -112,10 +137,9 @@ window.editProduct = function(id) {
     document.getElementById('prod-name').value = product.name;
     document.getElementById('prod-price').value = product.price;
     document.getElementById('submit-btn').innerText = 'Update Product';
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' }); 
 }
 
-// ... (Keep your renderTopItems and renderSalesAndAnalytics functions exactly the same) ...
 function renderTopItems() {
     let itemCounts = {};
     salesHistory.forEach(sale => {
@@ -164,4 +188,3 @@ function renderSalesAndAnalytics() {
         options: { responsive: true, maintainAspectRatio: false }
     });
 }
-loadCloudData();
